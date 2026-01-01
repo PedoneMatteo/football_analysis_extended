@@ -1,2 +1,5 @@
 *__pycahce__*
 *.pyc
+models/*.pt
+stubs/*.pkl
+output_videos/*.avi
