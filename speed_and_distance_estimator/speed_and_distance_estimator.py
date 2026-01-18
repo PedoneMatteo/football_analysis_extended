@@ -57,6 +57,7 @@ class SpeedAndDistance_Estimator():
                    if "speed" in track_info:
                        speed = track_info.get('speed',None)
                        distance = track_info.get('distance',None)
+                       pos = track_info.get('position_transformed',None)
                        if speed is None or distance is None:
                            continue
                        
@@ -68,6 +69,7 @@ class SpeedAndDistance_Estimator():
                        position = tuple(map(int,position))
                        cv2.putText(frame, f"{speed:.2f} km/h",position,cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,0),2)
                        cv2.putText(frame, f"{distance:.2f} m",(position[0],position[1]+20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,0),2)
+                       cv2.putText(frame, f"{pos}",(position[0],position[1]+40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,0),2)
             output_frames.append(frame)
         
         return output_frames
