@@ -117,26 +117,6 @@ def draw_grass_lines(image, lines):
         cv2.line(image, (top_x, 0), (bottom_x, height - 1), (0, 255, 0), 2)
     return image
 
-def unpack_line(line):
-    if isinstance(line, np.ndarray):
-        line = line.flatten()
-    return line[0], line[1], line[2], line[3]
-
-# Trovare la linea a Sinistra e a Destra
-def get_extreme_lines(grass_lines):
-    extreme_lines = []
-    normalized = [unpack_line(l) for l in grass_lines]
-
-    # ordina per centro X
-    normalized.sort(key=lambda l: (l[0] + l[2]) / 2)
-
-    left_line = normalized[0]
-    right_line = normalized[-1]
-    extreme_lines.append(left_line)
-    extreme_lines.append(right_line)
-
-    return extreme_lines
-
 
 if __name__ == "__main__":
     # Carica un'immagine di esempio
