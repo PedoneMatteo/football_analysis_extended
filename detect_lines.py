@@ -4,6 +4,8 @@
 # Regressione Matematica.
 import numpy as np 
 import cv2
+
+img_name = './input_videos/image.png'
 # -------------------------------------------------------------------------------------------------------------------------------
  
             ####################################
@@ -91,14 +93,14 @@ def get_grass_masks(balanced_image):
     # --- MASCHERA CHIARA (Light) ---
     # Alziamo la saturazione minima (da 40 a 60) per ignorare il verde sbiadito
     # Alziamo il valore minimo (da 100 a 150) per prendere solo il "brillante"
-    lower_light = np.array([35, 60, 155]) 
+    lower_light = np.array([35, 90, 145]) 
     upper_light = np.array([55, 255, 255])
     mask_light = cv2.inRange(hsv, lower_light, upper_light)
     
     # --- MASCHERA SCURA (Dark) ---
     # Restringiamo il valore massimo (da 100 a 140) per non sovrapporci troppo al chiaro
-    lower_dark = np.array([35, 30, 20])
-    upper_dark = np.array([60, 255, 100])
+    lower_dark = np.array([35, 50, 20])
+    upper_dark = np.array([55, 255, 100])
     mask_dark = cv2.inRange(hsv, lower_dark, upper_dark)
     
   # --- PULIZIA MORFOLOGICA POTENZIATA ---
@@ -174,6 +176,40 @@ def get_stable_lines(edges):
 # -------------------------------------------------------------------------------------------------------------------------------
 
             ###################################
+            ##     LINEE ESTREME DEL PRATO   ##
+            ###################################
+
+def get_extreme_lines(lines, width):
+    if not lines:
+        return None, None
+
+    leftmost_line = None
+    rightmost_line = None
+    
+    min_x = width  # Partiamo dal massimo possibile
+    max_x = 0      # Partiamo dal minimo possibile
+
+    for line in lines:
+        x1, y1, x2, y2 = line
+        
+        # Usiamo la media della X per determinare la posizione della linea
+        avg_x = (x1 + x2) / 2
+        
+        # Verifica se è la più a sinistra
+        if avg_x < min_x:
+            min_x = avg_x
+            leftmost_line = line
+            
+        # Verifica se è la più a destra
+        if avg_x > max_x:
+            max_x = avg_x
+            rightmost_line = line
+
+    return leftmost_line, rightmost_line
+
+# -------------------------------------------------------------------------------------------------------------------------------
+
+            ###################################
             ##    DISEGNO LINEE SUL PRATO    ##
             ###################################
 
@@ -195,14 +231,27 @@ def draw_grass_lines(image, lines):
         return image
 
     height, width, _ = image.shape
+    
     for line in lines:
+        # 1. Recuperiamo le coordinate del segmento rilevato
         x1, y1, x2, y2 = line
-        # Estendere la linea fino ai bordi superiore e inferiore dell'immagine
+        
+        # 2. DISEGNO DEI PUNTI ORIGINALI (Punti di inizio e fine rilevati)
+        # Disegniamo dei cerchietti rossi per vederli bene
+        # cv2.circle(immagine, centro, raggio, colore, spessore)
+        cv2.circle(image, (int(x1), int(y1)), 5, (0, 0, 255), -1) # Punto 1 (Rosso)
+        cv2.circle(image, (int(x2), int(y2)), 5, (255, 0, 0), -1) # Punto 2 (Blu)
+
+        # 3. ESTENSIONE DELLA LINEA
         top_x = extrapolate_line_point(x1, y1, x2, y2, 0)
         bottom_x = extrapolate_line_point(x1, y1, x2, y2, height - 1)
+        
         if top_x is None or bottom_x is None:
             continue
+            
+        # 4. DISEGNO DELLA LINEA ESTRAPOLATA (Verde)
         cv2.line(image, (top_x, 0), (bottom_x, height - 1), (0, 255, 0), 2)
+        
     return image
 
 # -------------------------------------------------------------------------------------------------------------------------------
@@ -213,7 +262,7 @@ def draw_grass_lines(image, lines):
 
 if __name__ == "__main__":
     # Carica un'immagine di esempio
-    image = cv2.imread('./input_videos/match.png')
+    image = cv2.imread(img_name)
 
     # 1) Bilanciamento luci
     preprocess_imaged = preprocess_image(image)
@@ -230,7 +279,18 @@ if __name__ == "__main__":
     # 4) Rilevamento linee stabili
     grass_lines = get_stable_lines(edges_light)
 
-    output_image = draw_grass_lines(image, grass_lines)
+    # ... dopo aver ottenuto 'grass_lines' dalla funzione get_stable_lines ...
+
+    height, width = image.shape[:2]
+    line_left, line_right = get_extreme_lines(grass_lines, width)
+
+    # Creiamo una lista con solo le due linee trovate per poter usare la tua funzione draw
+    extreme_lines = []
+    if line_left is not None: extreme_lines.append(line_left)
+    if line_right is not None: extreme_lines.append(line_right)
+
+    # Disegna il risultato
+    output_image = draw_grass_lines(image.copy(), grass_lines)
     
     # Visualizza questo per capire se le linee sono dritte
     cv2.imwrite('output_videos/debug/1_edges_test.png', edges_light)
